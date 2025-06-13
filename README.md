@@ -21,3 +21,6 @@ The code is written in **Fortran90**, and it models simplified agents (fish) in 
 To run the simulation:
 
 1. Compile the Fortran code using your preferred compiler (e.g. `gfortran`).
+
+## Contact:
+igalvear87@alumnes.ub.edu
