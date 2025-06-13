@@ -1,0 +1,82 @@
+subroutine fuerza(x, y, Vx, Vy, fx, fy, N, krep, katt, d0, mu, v0, tau, sv, sf)
+    implicit none
+
+    integer :: N, i, j
+    doubleprecision :: d_ij, krep, katt, d0, mu, v0, tau, sv, sf, w_ij, R1, R2, vi, theta, vj 
+    doubleprecision, dimension(N) :: Vx, Vy, x, y, fx, fy
+    doubleprecision, dimension(:), allocatable :: numeros
+
+   
+    allocate(numeros(2))
+
+    !forces lists
+    fx = 0.d0
+    fy = 0.d0
+
+    !Social Loop
+    do i = 1,N
+        do j = 1, N
+            if (i /= j) then
+                vi = sqrt(Vx(i)**2 + Vy(i)**2)
+                vj = sqrt(Vx(j)**2 + Vy(j)**2)
+                R1 = x(i)-x(j)
+                R2 = y(i)-y(j)
+                d_ij = sqrt(R1**2 + R2**2)
+                
+                if (vj .gt. vi) then !selective interaction
+
+                    if (d_ij > 0.d0) then
+                        w_ij = 1.d0/d_ij !weight
+                        !Atraction-Repulsion
+                        if (d_ij .le. d0) then
+                            fx(i) = fx(i) - krep*(d_ij - d0)*R1/d_ij
+                            fy(i) = fy(i) - krep*(d_ij - d0)*R2/d_ij
+                        else
+                            fx(i) = fx(i) - katt*(d_ij - d0)*R1/d_ij
+                            fy(i) = fy(i) - katt*(d_ij - d0)*R2/d_ij
+                        end if
+
+                        !Alignment
+                        fx(i) = fx(i) - mu*(Vx(i)-Vx(j))
+                        fy(i) = fy(i) - mu*(Vy(i)-Vy(j))
+
+                        !weight
+                        fx(i) = fx(i)*w_ij
+                        fy(i) = fy(i)*w_ij 
+                    else if (d_ij .eq. 0.d0) then
+                        write(*,*)'Alguna distancia d_ij es 0'
+                        stop
+                    end if
+                end if
+            end if
+        end do
+    end do 
+        
+    !Individual Forces
+    do i=1,N
+       
+        vi = sqrt(Vx(i)**2 + Vy(i)**2)
+        if (vi /= 0.d0) then
+            fx(i) = fx(i) - ( ((vi-v0)/tau) * Vx(i)/vi )
+            fy(i) = fy(i) - ( ((vi-v0)/tau) * Vy(i)/vi )
+        else
+            write(*,*)'La velocidad vi es 0'
+        end if
+    end do
+
+    !Stochastic Forces
+   
+    call boxmuller(2,1.d0,0.d0,numeros)
+    do i = 1, N
+        
+        vi = sqrt(Vx(i)**2 + Vy(i)**2)
+        if (vi /= 0.d0) then
+            fx(i) = fx(i) + sv*numeros(1)* Vx(i)/vi - (sf*numeros(2)*Vx(i)/vi) 
+            fy(i) = fy(i) + sv*numeros(1)* Vy(i)/vi + (sf*numeros(2)*Vy(i)/vi)
+        else
+            write(*,*)'La velocidad vi es 0'
+        end if
+    end do
+
+    return
+end  
